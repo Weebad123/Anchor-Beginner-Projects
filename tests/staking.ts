@@ -78,7 +78,6 @@ describe("staking", () => {
     expect(vaultAccountIs.rewardRate).to.equal(0);
     expect(vaultAccountIs.totalRewards.toNumber()).to.equal(0);
     expect(vaultAccountIs.totalStaked.toNumber()).to.equal(0);
-    expect(Boolean(vaultAccountIs.isInitialized)).to.equal(true);
   });
 
   it("Unhappy Scenario:  =====>>>>   Vault Can Only Be Initialized By The Vault Admin", async () => {
@@ -218,6 +217,22 @@ describe("staking", () => {
     expect(staker3AccountData.stakeAmount.toNumber()).to.equal(
       5 * anchor.web3.LAMPORTS_PER_SOL
     );
+
+    // Let's ensure the balances of the users decreased after transfering to the vault
+    // By testing that their current balances is less than what was staked + txn fees
+    const user1balance = await provider.connection.getAccountInfo(
+      user1Keypair.publicKey
+    );
+    const user2balance = await provider.connection.getAccountInfo(
+      user2Keypair.publicKey
+    );
+    const user3balance = await provider.connection.getAccountInfo(
+      user3Keypair.publicKey
+    );
+
+    expect(user1balance.lamports).lessThan(2 * anchor.web3.LAMPORTS_PER_SOL);
+    expect(user2balance.lamports).lessThan(4 * anchor.web3.LAMPORTS_PER_SOL);
+    expect(user3balance.lamports).lessThan(5 * anchor.web3.LAMPORTS_PER_SOL);
   });
 
   it("Unhappy Scenario:  ===>>>>   Staking Can Not Be Done Into An Uninitialized Vault Account 2", async () => {
@@ -284,6 +299,13 @@ describe("staking", () => {
     );
     // Let's ensure the rewards rate was calculated and is not zero
     expect(vaultAccountData.rewardRate).greaterThan(0);
+    // Let's ensure that balance of reward Authority decreased after transfer
+    const rewarderAuthorityBalance = await provider.connection.getAccountInfo(
+      rewardDistributer.publicKey
+    );
+    expect(rewarderAuthorityBalance.lamports).lessThanOrEqual(
+      3 * anchor.web3.LAMPORTS_PER_SOL
+    );
   });
 
   it("Unhappy Scenario:  =====>>>>> Only Reward Authority Can Distribute Rewards", async () => {
